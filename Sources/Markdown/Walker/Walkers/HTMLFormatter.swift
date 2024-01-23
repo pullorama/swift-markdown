@@ -35,6 +35,10 @@ public struct HTMLFormatterOptions: OptionSet {
     public static let parseInlineAttributeClass = HTMLFormatterOptions(rawValue: 1 << 1)
 }
 
+public protocol TextProcessing {
+  func processText(_ text: Text) -> String
+}
+
 /// A ``MarkupWalker`` that prints rendered HTML for a given ``Markup`` tree.
 public struct HTMLFormatter: MarkupWalker {
     /// The resulting HTML built up after printing.
@@ -45,9 +49,12 @@ public struct HTMLFormatter: MarkupWalker {
     var inTableHead = false
     var tableColumnAlignments: [Table.ColumnAlignment?]? = nil
     var currentTableColumn = 0
+    var textProcessor: TextProcessing?
 
-    public init(options: HTMLFormatterOptions = []) {
+    public init(options: HTMLFormatterOptions = [],
+                textProcessor: TextProcessing? = nil) {
         self.options = options
+        self.textProcessor = textProcessor
     }
 
     /// Format HTML for the given markup tree.
@@ -103,13 +110,15 @@ public struct HTMLFormatter: MarkupWalker {
     }
 
     public mutating func visitListItem(_ listItem: ListItem) -> () {
-        result += "<li>"
         if let checkbox = listItem.checkbox {
-            result += "<input type=\"checkbox\" disabled=\"\""
+            result += "<li class=\"task-list-item enabled\">"
+            result += "<input type=\"checkbox\" class=\"task-list-item-checkbox\" enabled"
             if checkbox == .checked {
-                result += " checked=\"\""
+                result += " checked"
             }
             result += " /> "
+        } else {
+          result += "<li>"
         }
         descendInto(listItem)
         result += "</li>\n"
@@ -128,9 +137,13 @@ public struct HTMLFormatter: MarkupWalker {
     }
 
     public mutating func visitUnorderedList(_ unorderedList: UnorderedList) -> () {
+      if unorderedList.children.first(where: {($0 as? ListItem)?.checkbox != nil}) != nil {
+        result += "<ul class=\"contains-task-list\">\n"
+      } else {
         result += "<ul>\n"
-        descendInto(unorderedList)
-        result += "</ul>\n"
+      }
+      descendInto(unorderedList)
+      result += "</ul>\n"
     }
 
     public mutating func visitParagraph(_ paragraph: Paragraph) -> () {
@@ -259,7 +272,7 @@ public struct HTMLFormatter: MarkupWalker {
     }
 
     public mutating func visitSoftBreak(_ softBreak: SoftBreak) -> () {
-        result += "\n"
+        result += "<br />\n"
     }
 
     public mutating func visitLink(_ link: Link) -> () {
@@ -275,7 +288,11 @@ public struct HTMLFormatter: MarkupWalker {
     }
 
     public mutating func visitText(_ text: Text) -> () {
+      guard let textProcessor else {
         result += text.string
+        return
+      }
+      result += textProcessor.processText(text)
     }
 
     public mutating func visitStrikethrough(_ strikethrough: Strikethrough) -> () {

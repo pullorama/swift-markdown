@@ -38,7 +38,7 @@ public extension Strikethrough {
         let childrenPlainText = children.compactMap {
             return ($0 as? InlineMarkup)?.plainText
         }.joined()
-        return "~\(childrenPlainText)~"
+        return "\(childrenPlainText)"
     }
 
     // MARK: Visitation
