@@ -111,8 +111,8 @@ public struct HTMLFormatter: MarkupWalker {
 
     public mutating func visitListItem(_ listItem: ListItem) -> () {
         if let checkbox = listItem.checkbox {
-            result += "<li class=\"task-list-item enabled\">"
-            result += "<input type=\"checkbox\" class=\"task-list-item-checkbox\" enabled"
+            result += "<li class=\"task-list-item\">"
+            result += "<input type=\"checkbox\" class=\"task-list-item-checkbox\" disabled"
             if checkbox == .checked {
                 result += " checked"
             }
